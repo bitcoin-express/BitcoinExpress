@@ -1,59 +1,10 @@
 /**
  * Bitcoin-express payment library.
+ *
+ * Copyright (c) 2018-present, RMP Protection Ltd.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
-
-// left: 37, up: 38, right: 39, down: 40,
-// spacebar: 32, pageup: 33, pagedown: 34, end: 35, home: 36
-var keys = {37: 1, 38: 1, 39: 1, 40: 1};
-
-function preventDefault(e) {
-  e = e || window.parent.event;
-  if (e.preventDefault) {
-    e.preventDefault();
-  }
-  e.returnValue = false;  
-}
-
-function preventDefaultForScrollKeys(e) {
-  if (keys[e.keyCode]) {
-    preventDefault(e);
-    return false;
-  }
-}
-
-function disableScroll(hide) {
-  if (!hide) {
-    hide = true;
-  }
-  if (window.parent.addEventListener) {
-    // older FF
-    window.parent.addEventListener('DOMMouseScroll', preventDefault, false);
-  }
-  // modern standard
-  window.parent.onwheel = preventDefault;
-  // older browsers, IE
-  window.parent.onmousewheel = window.parent.document.onmousewheel = preventDefault;
-  // mobile
-  window.parent.ontouchmove  = preventDefault;
-  window.parent.document.onkeydown  = preventDefaultForScrollKeys;
-  window.parent.document.getElementsByTagName("body")[0].style.overflow = "hidden";
-
-  if (hide) {
-    document.getElementsByTagName("body")[0].style.visibility = "hidden";
-  }
-}
-
-function enableScroll() {
-  if (window.removeEventListener) {
-    window.parent.removeEventListener('DOMMouseScroll', preventDefault, false);
-  }
-  window.parent.onmousewheel = window.parent.document.onmousewheel = null; 
-  window.parent.onwheel = null; 
-  window.parent.ontouchmove = null;  
-  window.parent.document.onkeydown = null;  
-  window.parent.document.getElementsByTagName("body")[0].style.overflow = "scroll";
-}
-
 
 var frame_id = "walletxyz";
 
@@ -1041,3 +992,55 @@ var BitcoinExpress = {
     }
   } //end host
 };
+
+function preventDefault(e) {
+  e = e || window.parent.event;
+  if (e.preventDefault) {
+    e.preventDefault();
+  }
+  e.returnValue = false;  
+}
+
+function preventDefaultForScrollKeys(e) {
+  // left: 37, up: 38, right: 39, down: 40,
+  // spacebar: 32, pageup: 33, pagedown: 34, end: 35, home: 36
+  var keys = {37: 1, 38: 1, 39: 1, 40: 1};
+
+  if (keys[e.keyCode]) {
+    preventDefault(e);
+    return false;
+  }
+}
+
+function disableScroll(hide) {
+  if (!hide) {
+    hide = true;
+  }
+  if (window.parent.addEventListener) {
+    // older FF
+    window.parent.addEventListener('DOMMouseScroll', preventDefault, false);
+  }
+  // modern standard
+  window.parent.onwheel = preventDefault;
+  // older browsers, IE
+  window.parent.onmousewheel = window.parent.document.onmousewheel = preventDefault;
+  // mobile
+  window.parent.ontouchmove  = preventDefault;
+  window.parent.document.onkeydown  = preventDefaultForScrollKeys;
+  window.parent.document.getElementsByTagName("body")[0].style.overflow = "hidden";
+
+  if (hide) {
+    document.getElementsByTagName("body")[0].style.visibility = "hidden";
+  }
+}
+
+function enableScroll() {
+  if (window.removeEventListener) {
+    window.parent.removeEventListener('DOMMouseScroll', preventDefault, false);
+  }
+  window.parent.onmousewheel = window.parent.document.onmousewheel = null; 
+  window.parent.onwheel = null; 
+  window.parent.ontouchmove = null;  
+  window.parent.document.onkeydown = null;  
+  window.parent.document.getElementsByTagName("body")[0].style.overflow = "scroll";
+}

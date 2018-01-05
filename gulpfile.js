@@ -32,12 +32,13 @@ var probes = {
 
 gulp.task('default', function () {
   return gulp.src('BitcoinExpress.js')
+    .pipe(replace("###VERSION###", version))
     .pipe(replace("###WELL_KNOWN_WALLETS###", probes.dist))
-    .pipe(stripDebug())
     .pipe(rename({ suffix: '.min' }))
     .pipe(uglify().on('error', function (e) {
       console.log(e);
     }))
+    .pipe(stripDebug())
     .pipe(gulp.dest('dist'));
 });
 

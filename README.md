@@ -4,11 +4,11 @@
   <br>
   BitcoinExpress
   <br>
-  ![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)
+
 </h1>
 
 Bitcoin-express payment library 
-===============================
+![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)
 
 * Licence: [MIT Licence](https://raw.githubusercontent.com/bitcoin-express/BitcoinExpress/master/LICENSE.md)
 * Authors: [Jose E. Martinez](https://github.com/jootse84), [Ricky Rand](https://github.com/rickycrand)

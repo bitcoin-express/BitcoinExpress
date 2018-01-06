@@ -10,16 +10,7 @@ var frame_id = "walletxyz";
 
 var BitcoinExpress = {
   BitcoinExpress: "v###VERSION###",
-  wellKnownWallets: [
-    {
-      domain: "bitcoin-e.org",
-      protocol: "https://",
-      port: ":443",
-      path: "",
-      probe: "/probe.html",
-      wallet: "/wallet.html"
-    }
-  ],
+  wellKnownWallets: JSON.parse('###WELL_KNOWN_WALLETS###'),
   //Public functions to be called by site owner
   Initialise: function() {
     console.log("BitcoinExpress.Initialise");

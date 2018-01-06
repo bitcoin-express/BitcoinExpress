@@ -8,7 +8,8 @@ var fs = require('fs');
 var version = JSON.parse(fs.readFileSync('./package.json')).version;
 
 var probes = {
-  dev: [ // MODIFY THIS ARRAY FOR DEV MODE
+  // MODIFY THIS ARRAY FOR DEV MODE
+  dev: [
     {
       domain: "localhost",
       protocol: "http://",
@@ -18,7 +19,8 @@ var probes = {
       wallet: "/wallet.html"
     }
   ],
-  dist: [ // MODIFY THIS ARRAY FOR PRODUCTION MODE
+  // MODIFY THIS ARRAY FOR PRODUCTION MODE
+  dist: [
     {
       domain: "bitcoin-e.org",
       protocol: "https://",
@@ -32,8 +34,8 @@ var probes = {
 
 gulp.task('default', function () {
   return gulp.src('BitcoinExpress.js')
+    .pipe(replace("###WELL_KNOWN_WALLETS###", JSON.stringify(probes.dist)))
     .pipe(replace("###VERSION###", version))
-    .pipe(replace("###WELL_KNOWN_WALLETS###", probes.dist))
     .pipe(rename({ suffix: '.min' }))
     .pipe(uglify().on('error', function (e) {
       console.log(e);
@@ -45,6 +47,6 @@ gulp.task('default', function () {
 gulp.task('build:dev', function () {
   return gulp.src('BitcoinExpress.js')
     .pipe(replace("###VERSION###", version))
-    .pipe(replace("###WELL_KNOWN_WALLETS###", probes.dev))
+    .pipe(replace("###WELL_KNOWN_WALLETS###", JSON.stringify(probes.dev)))
     .pipe(gulp.dest('dist'));
 });

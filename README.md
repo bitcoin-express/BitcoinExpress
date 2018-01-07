@@ -1,14 +1,13 @@
 <h1 align="center">
-  <br>
   <img width=20% src="https://bitcoin-e.org/css/img/Bitcoin-express.png">
   <br>
   BitcoinExpress
   <br>
-
 </h1>
 
-Bitcoin-express payment library 
 ![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)
+
+Bitcoin-express payment library 
 
 * Licence: [MIT Licence](https://raw.githubusercontent.com/bitcoin-express/BitcoinExpress/master/LICENSE.md)
 * Authors: [Jose E. Martinez](https://github.com/jootse84), [Ricky Rand](https://github.com/rickycrand)

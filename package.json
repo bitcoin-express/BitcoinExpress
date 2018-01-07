@@ -26,6 +26,7 @@
     "gulp-rename": "1.2.0",
     "gulp-replace": "^0.6.1",
     "gulp-strip-debug": "^2.0.0",
-    "gulp-uglify": "latest"
+    "gulp-uglify": "^3.0.0",
+    "yargs": "^10.0.3"
   }
 }

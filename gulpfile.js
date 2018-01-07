@@ -7,6 +7,8 @@ var replace = require('gulp-replace');
 var fs = require('fs');
 var version = JSON.parse(fs.readFileSync('./package.json')).version;
 
+var argv = require('yargs').argv;
+
 var probes = {
   // MODIFY THIS ARRAY FOR DEV MODE
   dev: [
@@ -33,6 +35,7 @@ var probes = {
 }
 
 gulp.task('default', function () {
+  var dest = argv.dest || 'dist';
   return gulp.src('BitcoinExpress.js')
     .pipe(replace("###WELL_KNOWN_WALLETS###", JSON.stringify(probes.dist)))
     .pipe(replace("###VERSION###", version))
@@ -40,13 +43,14 @@ gulp.task('default', function () {
     .pipe(uglify().on('error', function (e) {
       console.log(e);
     }))
-    .pipe(stripDebug())
-    .pipe(gulp.dest('dist'));
+  //  .pipe(stripDebug())
+    .pipe(gulp.dest(dest));
 });
 
 gulp.task('build:dev', function () {
+  var dest = argv.dest || 'dist';
   return gulp.src('BitcoinExpress.js')
     .pipe(replace("###VERSION###", version))
     .pipe(replace("###WELL_KNOWN_WALLETS###", JSON.stringify(probes.dev)))
-    .pipe(gulp.dest('dist'));
+    .pipe(gulp.dest(dest));
 });

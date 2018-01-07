@@ -1004,7 +1004,7 @@ function preventDefaultForScrollKeys(e) {
 }
 
 function disableScroll(hide) {
-  if (!hide) {
+  if (hide == undefined) {
     hide = true;
   }
   if (window.parent.addEventListener) {

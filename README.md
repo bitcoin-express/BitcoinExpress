@@ -46,6 +46,7 @@ Install all the development dependencies of the project:
 ```
 
 Build library (developer mode).
+By default the lib will be placed in the *dist/* folder, use the flag *--dest* to modify the destination folder.
 ```shellscript
     gulp build:dev
 ```

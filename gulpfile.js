@@ -28,8 +28,8 @@ var probes = {
       protocol: "https://",
       port: ":443",
       path: "",
-      probe: "/probe.html",
-      wallet: "/wallet.html"
+      probe: "/wallet/probe.html",
+      wallet: "/wallet/wallet.html"
     }
   ]
 }

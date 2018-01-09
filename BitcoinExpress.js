@@ -517,7 +517,7 @@ var BitcoinExpress = {
     buildWalletSelector: function (elementStr) {
       $("body").append("<div id='B_E_container' />");
       B_E._.setWalletSelectorStyle("div#B_E_container");
-      $("div#B_E_container").append("<img src='css/img/BitcoinExpress.svg' style='margin: 10px;' />");
+      $("div#B_E_container").append("<img src='https://bitcoin-e.org/wallet/css/img/BitcoinExpress.svg' style='margin: 10px;' />");
       $("div#B_E_container").append("<p style='width:240px;margin-left:auto;margin-right:auto;color:#efefef;'>Please enter your Wallet's domain</p>");
       $("div#B_E_container").append("<input id='user-domain' style='width:168px'/> <button name='ok'>OK</button><br/>");
       $("div#B_E_container").append("<p style='width:240px;margin: 20px auto 0 auto;color:#efefef;'>OR - select one from the list below</p>");

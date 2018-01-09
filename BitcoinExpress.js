@@ -418,10 +418,10 @@ var BitcoinExpress = {
     // Get window dimensions - returns {width, height}
     get_window_size: function()  {
       return {
-        width: document.body.clientWidth || window.innerWidth
-          ||  document.documentElement && document.documentElement.clientWidth,
-        height: document.body.clientHeight || window.innerHeight 
-          ||  document.documentElement && document.documentElement.clientHeight 
+        width: window.innerWidth || document.body.clientWidth
+          || document.documentElement && document.documentElement.clientWidth,
+        height: window.innerHeight || document.body.clientHeight 
+          || document.documentElement && document.documentElement.clientHeight 
       };
     }, 
   
@@ -750,10 +750,10 @@ var BitcoinExpress = {
      * @param goFullScreen [boolean]
      * @return A Promise that resolves to "OK" or an error
      */
-    WalletFullScreen: function(goFullScreen) {
+    WalletFullScreen: function (goFullScreen) {
       console.log("WalletFullScreen", goFullScreen);
       var self = this;
-      return new Promise(function(resolve,reject) {
+      return new Promise(function (resolve,reject) {
         if (typeof BitcoinExpress.Host != 'undefined') {
           if (goFullScreen) {
             disableScroll();

@@ -106,7 +106,7 @@ var BitcoinExpress = {
         style: "z-index: 10000000; display: hidden;"
       }).appendTo('body');
 
-      return new Promise(function (resolve,reject) {
+      return new Promise(function (resolve, reject) {
         //Listen for wallet messages
         var manageWalletEvents = function(event) {
           console.log("startWallet.manageWalletEvents",event);
@@ -153,7 +153,7 @@ var BitcoinExpress = {
               break;
 
             case "resize_iframe" :
-              if(message["fullScreen"]) {
+              if (message["fullScreen"]) {
                 self.isDraggable = false;
                 var size = self.get_window_size();
                 B_E._.resize_iframe(frame_id, size.width, size.height);
@@ -212,7 +212,7 @@ var BitcoinExpress = {
                 reject(new Error("System error"));
               }
               var Payment = message.payment;
-              console.log("Payment.id",Payment.id);
+              console.log("Payment.id", Payment.id);
               //Send the payment to the merchant
               $.ajax({
                 url: PaymentUrl,
@@ -496,7 +496,7 @@ var BitcoinExpress = {
       container[0].style.boxShadow = "0 0 10px 10px rgba(0, 0, 0, 0.1), 0 0 10px 10px rgba(0, 0, 0, 0.1)";
       container[0].style.textAlign = "center";
       container[0].style.margin = "20px";
-      container[0].style.padding = "0";
+      container[0].style.padding = "10px";
       container[0].style.color = "#fff";
       container[0].style.backgroundColor = "#888";
       container[0].style.border =  "solid white 4px";
@@ -517,10 +517,10 @@ var BitcoinExpress = {
     buildWalletSelector: function (elementStr) {
       $("body").append("<div id='B_E_container' />");
       B_E._.setWalletSelectorStyle("div#B_E_container");
-      $("div#B_E_container").append("<img src='https://bitcoin-e.org/wallet/css/img/BitcoinExpress.svg' style='margin: 10px;' />");
-      $("div#B_E_container").append("<p style='width:240px;margin-left:auto;margin-right:auto;color:#efefef;'>Please enter your Wallet's domain</p>");
+      $("div#B_E_container").append("<img id='logo_selector' src='https://bitcoin-e.org/wallet/css/img/BitcoinExpress.svg' style='margin: 10px; cursor: move;' />");
+      $("div#B_E_container").append("<p style='width:220px;margin-left:auto;margin-right:auto;color:#efefef;'>Please enter your Wallet's domain</p>");
       $("div#B_E_container").append("<input id='user-domain' style='width:168px'/> <button name='ok'>OK</button><br/>");
-      $("div#B_E_container").append("<p style='width:240px;margin: 20px auto 0 auto;color:#efefef;'>OR - select one from the list below</p>");
+      $("div#B_E_container").append("<p style='width:220px;margin: 20px auto 0 auto;color:#efefef;'>OR - select one from the list below:</p>");
       $("div#B_E_container").append("<ul style='padding:0 0 0 0' type='text' id='wallet-list'></ul>");
       $("div#B_E_container").append("<button name='cancel' style='margin-top: 20px;'>Cancel</button>");
       $("div#B_E_container").append("<h4 style='font-size: 30px;opacity:0.2;margin-top: 20px'>wallet loader</h4>");
@@ -543,7 +543,7 @@ var BitcoinExpress = {
             if("fn" in message && message.fn === "probe") {
               console.log("Received from "+event.origin+": Name "+message.displayName+" - "+ (message.active?"active":"inactive"));
               // TO_DO
-              var li = $("<li style='list-style:none;font-size:120%;cursor:pointer' data-origin='"+event.origin+"'>"+message.displayName+"</li>");
+              var li = $("<li style='list-style:none;color: #00357d;font-size:120%;cursor:pointer' data-origin='"+event.origin+"'>"+message.displayName+"</li>");
               $("#wallet-list").append(li);
               li.click(function() {
                 function setCookie(cname, cvalue, exdays) {

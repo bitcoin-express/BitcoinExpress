@@ -3,6 +3,7 @@ var rename = require('gulp-rename');
 var uglify = require('gulp-uglify');
 var stripDebug = require('gulp-strip-debug');
 var replace = require('gulp-replace');
+var watch = require('gulp-watch');
 
 var fs = require('fs');
 var version = JSON.parse(fs.readFileSync('./package.json')).version;
@@ -17,8 +18,8 @@ var probes = {
       protocol: "http://",
       port: ":8000",
       path: "",
-      probe: "/probe.html",
-      wallet: "/wallet.html"
+      probe: "/wallet/probe.html",
+      wallet: "/wallet/wallet.html"
     }
   ],
   // MODIFY THIS ARRAY FOR PRODUCTION MODE
@@ -34,8 +35,7 @@ var probes = {
   ]
 }
 
-gulp.task('default', function () {
-  var dest = argv.dest || 'dist';
+function dist(dest) {
   return gulp.src('BitcoinExpress.js')
     .pipe(replace("###WELL_KNOWN_WALLETS###", JSON.stringify(probes.dist)))
     .pipe(replace("###VERSION###", version))
@@ -43,14 +43,40 @@ gulp.task('default', function () {
     .pipe(uglify().on('error', function (e) {
       console.log(e);
     }))
-  //  .pipe(stripDebug())
+    .pipe(stripDebug())
     .pipe(gulp.dest(dest));
+}
+
+function dev(dest) {
+  return gulp.src('BitcoinExpress.js')
+    .pipe(replace("###VERSION###", version))
+    .pipe(replace("###WELL_KNOWN_WALLETS###", JSON.stringify(probes.dev)))
+    .pipe(rename({ suffix: '.min' }))
+    .pipe(gulp.dest(dest));
+}
+
+gulp.task('default', function () {
+  var dest = argv.dest || 'dist';
+  if ("watch" in argv) {
+    return watch('BitcoinExpress.js', function () {
+      var time = new Date();
+      var strTime = time.getHours() + ":" + time.getMinutes() + ":" + time.getSeconds();
+      console.log('[' + strTime + '] File updated');
+      dist(dest);
+    });
+  }
+  return dist(dest);
 });
 
 gulp.task('build:dev', function () {
   var dest = argv.dest || 'dist';
-  return gulp.src('BitcoinExpress.js')
-    .pipe(replace("###VERSION###", version))
-    .pipe(replace("###WELL_KNOWN_WALLETS###", JSON.stringify(probes.dev)))
-    .pipe(gulp.dest(dest));
+  if ("watch" in argv) {
+    return watch('BitcoinExpress.js', function () {
+      var time = new Date();
+      var strTime = time.getHours() + ":" + time.getMinutes() + ":" + time.getSeconds();
+      console.log('[' + strTime + '] File updated');
+      dev(dest);
+    });
+  }
+  return dev(dest);
 });

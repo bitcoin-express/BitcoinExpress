@@ -498,6 +498,9 @@ var BitcoinExpress = {
       container[0].style.margin = "20px";
       container[0].style.padding = "10px";
       container[0].style.color = "#fff";
+      container[0].style["background-image"] = "url('https://bitcoin-e.org/static/images/Bitcoin-express-trans.png')";
+      container[0].style["background-repeat"] = "no-repeat";
+      container[0].style["background-position"] = "center 120px";
       container[0].style.backgroundColor = "#888";
       container[0].style.border =  "solid white 4px";
       container[0].style.borderRadius = "40px 12px 40px 12px";      
@@ -517,90 +520,94 @@ var BitcoinExpress = {
     buildWalletSelector: function (elementStr) {
       $("body").append("<div id='B_E_container' />");
       B_E._.setWalletSelectorStyle("div#B_E_container");
-      $("div#B_E_container").append("<img id='logo_selector' src='https://bitcoin-e.org/wallet/css/img/BitcoinExpress.svg' style='margin: 10px; cursor: move;' />");
-      $("div#B_E_container").append("<p style='width:220px;margin-left:auto;margin-right:auto;color:#efefef;'>Please enter your Wallet's domain</p>");
-      $("div#B_E_container").append("<input id='user-domain' style='width:168px'/> <button name='ok'>OK</button><br/>");
-      $("div#B_E_container").append("<p style='width:220px;margin: 20px auto 0 auto;color:#efefef;'>OR - select one from the list below:</p>");
-      $("div#B_E_container").append("<ul style='padding:0 0 0 0' type='text' id='wallet-list'></ul>");
-      $("div#B_E_container").append("<button name='cancel' style='margin-top: 20px;'>Cancel</button>");
-      $("div#B_E_container").append("<h4 style='font-size: 30px;opacity:0.2;margin-top: 20px'>wallet loader</h4>");
-    },
-    
-    getWalletDomain: function(paymentRequestContainer) {
-      
-      return new Promise(function(resolve,reject) {
-        // First see if a Cookie for a wallet has already been instantiated in this browser on this site
-        var previousDomain = B_E._.getCookie("BitcoinExpressWallet");
-        if(previousDomain.length > 0) {
-          resolve(previousDomain);
-        } else {
-          B_E._.buildWalletSelector("div#B_E_container");
-          // Must open the selector and allow the user to choose from a list of well known suppliers
-          // Listen for the probes to respond and add them to the list for selection
-          var registerProbe = function (event) {
-            console.log("registerProbe",event);
-            var message = event.data;
-            if("fn" in message && message.fn === "probe") {
-              console.log("Received from "+event.origin+": Name "+message.displayName+" - "+ (message.active?"active":"inactive"));
-              // TO_DO
-              var li = $("<li style='list-style:none;color: #00357d;font-size:120%;cursor:pointer' data-origin='"+event.origin+"'>"+message.displayName+"</li>");
-              $("#wallet-list").append(li);
-              li.click(function() {
-                function setCookie(cname, cvalue, exdays) {
-                  var d = new Date();
-                  d.setTime(d.getTime() + (exdays*24*60*60*1000));
-                  var expires = "expires="+ d.toUTCString();
-                  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-                }
-                setCookie("BitcoinExpressWallet", event.origin+message.walletName, 30);
-                window.removeEventListener("message", registerProbe, false);
-                $("div#B_E_container").remove();
-                resolve(event.origin+message.walletName);
-              });
-            } else {
-              console.log("Received a message with no 'fn'");
-            }
-          };
-          
-          $("div#B_E_container button[name='cancel']").click(function(ev) {
-            window.removeEventListener("message", registerProbe, false);
-            $("div#B_E_container").remove();
-            // reject(new Error("Cancelled"));
-          });
-          
-          window.addEventListener("message", registerProbe, false);
-          
-          $("div#B_E_container button[name='ok']").click(function(){
-            var userDomain = $("#user-domain").val();
-            if(userDomain.length > 0) {
-                  $("div#B_E_container").remove();
-                 resolve("http://"+userDomain+":8080/Bitcoin-express/Tests/bitcoin-express-wallet-app-mock.html");        
-            } else {
-              console.log("user domain was empty");
-            }
-          });
-          
-          //start and iframe for each probe and wait for it to respond
-          B_E.wellKnownWallets.forEach(function (supplier, i, array) {
-            var probeName = supplier.protocol + supplier.domain + supplier.port + supplier.path + supplier.probe;
-            console.log(probeName);
-            $("div#B_E_container").append("<iframe src='"+probeName+"' style='display : none'></iframe>");
-          });
 
-          var handles = $("div#B_E_container");
-          handles.mousedown(function (event) {
-            // Check event target, otherwise in IE we trigger a false drag even
-            // if an area element is clicked
-            if (handles.index(event.target) >= 0) {
-              B_E._.start_drag_iframe(event.clientX, event.clientY, "B_E_container");
-              return false;
-            } else {
-              console.log("Mousedown not on handle ignored");
-            }
-          });
-        }
+      var styleLine = 'width: 220px; margin: 5px auto; color: #efefef';
+
+      $("div#B_E_container").append("<img id='logo_selector' src='https://bitcoin-e.org/wallet/css/img/BitcoinExpress.svg' style='margin: 10px; cursor: move;' />");
+      $("div#B_E_container").append("<p style='" + styleLine + "'>Select your Wallet supplier:</p>");
+      $("div#B_E_container").append("<ul style='padding: 0 0 0 0' type='text' id='wallet-list'></ul>");
+      $("div#B_E_container").append("<p style='" + styleLine + "'>- OR -</p>");
+      $("div#B_E_container").append("<p style='" + styleLine + "'>Enter your Wallet's domain</p>");
+      $("div#B_E_container").append("<input id='user-domain' style='width: 168px; margin-top: 10px'/> <button name='ok'>OK</button>");
+      $("div#B_E_container").append("<br/><br/>");
+      $("div#B_E_container").append("<button name='cancel' style='margin-top: 20px; cursor: pointer;'>Cancel</button>");
+    },
+
+    getWalletDomain: function (paymentRequestContainer) {
+
+      // First see if a Cookie for a wallet has already been instantiated in this browser on this site
+      var previousDomain = B_E._.getCookie("BitcoinExpressWallet");
+      if (previousDomain.length > 0) {
+        return Promise.resolve(previousDomain);
+      }
+
+      return new Promise(function (resolve, reject) {
+        B_E._.buildWalletSelector("div#B_E_container");
+        // Must open the selector and allow the user to choose from a list of well known suppliers
+        // Listen for the probes to respond and add them to the list for selection
+        var registerProbe = function (event) {
+          console.log("registerProbe",event);
+          var message = event.data;
+          if("fn" in message && message.fn === "probe") {
+            console.log("Received from "+event.origin+": Name "+message.displayName+" - "+ (message.active?"active":"inactive"));
+            // TO_DO
+            var li = $("<li style='list-style:none;color: #00357d;font-size:110%;cursor:pointer;text-transform: uppercase' data-origin='"+event.origin+"'>"+message.displayName+"</li>");
+            $("#wallet-list").append(li);
+            li.click(function() {
+              function setCookie(cname, cvalue, exdays) {
+                var d = new Date();
+                d.setTime(d.getTime() + (exdays*24*60*60*1000));
+                var expires = "expires="+ d.toUTCString();
+                document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+              }
+              setCookie("BitcoinExpressWallet", event.origin+message.walletName, 30);
+              window.removeEventListener("message", registerProbe, false);
+              $("div#B_E_container").remove();
+              resolve(event.origin+message.walletName);
+            });
+          } else {
+            console.log("Received a message with no 'fn'");
+          }
+        };
+        
+        $("div#B_E_container button[name='cancel']").click(function(ev) {
+          window.removeEventListener("message", registerProbe, false);
+          $("div#B_E_container").remove();
+          // reject(new Error("Cancelled"));
+        });
+
+        window.addEventListener("message", registerProbe, false);
+
+        $("div#B_E_container button[name='ok']").click(function(){
+          var userDomain = $("#user-domain").val();
+          if(userDomain.length > 0) {
+            $("div#B_E_container").remove();
+            resolve("http://"+userDomain+":8080/Bitcoin-express/Tests/bitcoin-express-wallet-app-mock.html");        
+          } else {
+            console.log("user domain was empty");
+          }
+        });
+
+        //start and iframe for each probe and wait for it to respond
+        B_E.wellKnownWallets.forEach(function (supplier, i, array) {
+          var probeName = supplier.protocol + supplier.domain + supplier.port + supplier.path + supplier.probe;
+          console.log(probeName);
+          $("div#B_E_container").append("<iframe src='"+probeName+"' style='display : none'></iframe>");
+        });
+
+        var handles = $("img#logo_selector");
+        handles.mousedown(function (event) {
+          // Check event target, otherwise in IE we trigger a false drag even
+          // if an area element is clicked
+          if (handles.index(event.target) >= 0) {
+            var position = $("div#B_E_container").position();
+            B_E._.start_drag_iframe(event.clientX - position.left, event.clientY - position.top, "B_E_container");
+            return false;
+          } else {
+            console.log("Mousedown not on handle ignored");
+          }
+        });
       });
-      
     },
     
     getCookie : function (cname) {
@@ -681,7 +688,7 @@ var BitcoinExpress = {
      * @param width [number]
      * @param height [number]
      */
-    WalletGoModal: function(goModal, width, height) {
+    WalletGoModal: function (goModal, width, height) {
       console.log("Host.WalletGoModal", goModal, width, height);
       this.sendMessage({
         fn: "gomodal_iframe",
@@ -699,23 +706,20 @@ var BitcoinExpress = {
      */
     WalletClose: function (message, reason) {
       console.log("WalletClose ", message, reason);
-      var self = this;
-      return new Promise(function(resolve, reject) {
-        if(typeof BitcoinExpress.Host != 'undefined') {
-          self.sendMessage({
-            fn: "popup_message",
-            message: message,
-            period: 4000
-          });
-          self.sendMessage({
-            fn: "handle_failure",
-            reason: reason
-          });
-          resolve("OK");
-        } else {
-          reject(new Error("Host not found"));
-        }
-      });
+      if (typeof BitcoinExpress.Host != 'undefined') {
+        this.sendMessage({
+          fn: "popup_message",
+          message: message,
+          period: 4000
+        });
+        this.sendMessage({
+          fn: "handle_failure",
+          reason: reason
+        });
+        return Promise.resolve("OK");
+      } else {
+        return Promise.reject(new Error("Host not found"));
+      }
     },
 
     /**
@@ -726,23 +730,20 @@ var BitcoinExpress = {
     */
     WalletRemove: function (message, reason) {
       console.log("WalletRemove ", message, reason);
-      var self = this;
-      return new Promise(function (resolve,reject) {
-        if(typeof BitcoinExpress.Host != 'undefined') {
-          self.sendMessage({
-            fn: "popup_message",
-            message: message,
-            period: 4000
-          });
-          self.sendMessage({
-            fn: "remove_wallet",
-            reason: reason
-          });
-          resolve("OK");
-        } else {
-          reject(new Error("Host not found"));
-        }
-      });
+      if (typeof BitcoinExpress.Host != 'undefined') {
+        this.sendMessage({
+          fn: "popup_message",
+          message: message,
+          period: 4000
+        });
+        this.sendMessage({
+          fn: "remove_wallet",
+          reason: reason
+        });
+        return Promise.resolve("OK");
+      } else {
+        return Promise.reject(new Error("Host not found"));
+      }
     },
 
     /**
@@ -752,32 +753,29 @@ var BitcoinExpress = {
      */
     WalletFullScreen: function (goFullScreen) {
       console.log("WalletFullScreen", goFullScreen);
-      var self = this;
-      return new Promise(function (resolve,reject) {
-        if (typeof BitcoinExpress.Host != 'undefined') {
-          if (goFullScreen) {
-            disableScroll();
-            setTimeout(function () {
-              self.sendMessage({
-                fn: "resize_iframe",
-                fullScreen: true,
-              });
-              document.getElementsByTagName("body")[0].style.visibility = "inherit";
-            }, 500);
-          } else {
-            enableScroll();
-            self.sendMessage({
+      if (typeof BitcoinExpress.Host != 'undefined') {
+        if (goFullScreen) {
+          disableScroll();
+          setTimeout(function () {
+            this.sendMessage({
               fn: "resize_iframe",
-              width: B_E.Wallet.Dimentions.WalletWidth,
-              height: BitcoinExpress.Wallet.Dimentions.WalletHeight,
-              fullScreen: false
+              fullScreen: true,
             });
-          }
-          resolve("OK");
+            document.getElementsByTagName("body")[0].style.visibility = "inherit";
+          }, 500);
         } else {
-          reject(new Error("Host not found"));
+          enableScroll();
+          this.sendMessage({
+            fn: "resize_iframe",
+            width: B_E.Wallet.Dimentions.WalletWidth,
+            height: BitcoinExpress.Wallet.Dimentions.WalletHeight,
+            fullScreen: false
+          });
         }
-      });
+        return Promise.resolve("OK");
+      } else {
+        return Promise.reject(new Error("Host not found"));
+      }
     },
 
     /**
@@ -785,7 +783,7 @@ var BitcoinExpress = {
      * @param handles [object] (jQuery context) or body background by default
      * @return A Promise that resolves to "OK" or an error
      */
-    WalletMakeDraggable: function(handles) {
+    WalletMakeDraggable: function (handles) {
       console.log("WalletMakeDraggable ", handles);
 
       if (handles) {
@@ -793,112 +791,112 @@ var BitcoinExpress = {
       } else {
         handles = handles || $('body');
       }
-      var self = this;
-      return new Promise(function(resolve,reject) {
-        if (typeof BitcoinExpress.Host != 'undefined') {
-          // Register mouse down event
-          handles.mousedown(function(event) {
-            // Check event target, otherwise in IE we trigger a false drag
-            // even if an area element is clicked
-            if (handles.index(event.target) >= 0) {
-              // Run it through the function to setup bubbling
-              if (!this.activeDraggable) {
-                bubbleIframeMouseMove(window.parent.document.getElementById(frame_id));
-                this.activeDraggable = true;
-              }
 
-              // Mouse up/move execution from the parent of the the iframe
-              function bubbleIframeMouseMove(iframe) {
-                // Save any previous onmousemove handler
-                var existingOnMouseMove = window.document.onmousemove;
-                var existingOnMouseUp = window.document.onmouseup;
+      if (typeof BitcoinExpress.Host != 'undefined') {
+        var self = this;
 
-                // Attach a new onmousemove listener
-                window.document.onmousemove = function(e) {
-                  // Fire any existing onmousemove listener 
-                  if(existingOnMouseMove) existingOnMouseMove(e);
-
-                  // Create a new event for the this window
-                  var evt = document.createEvent("MouseEvents");
-
-                  // We'll need this to offset the mouse move appropriately
-                  var boundingClientRect = iframe.getBoundingClientRect();
-
-                  // Initialize the event, copying exiting event values
-                  // for the most part
-                  evt.initMouseEvent( 
-                    "mousemove", 
-                    true, // bubbles
-                    false, // not cancelable 
-                    window,
-                    e.detail,
-                    e.screenX,
-                    e.screenY, 
-                    e.clientX + boundingClientRect.left, 
-                    e.clientY + boundingClientRect.top, 
-                    e.ctrlKey, 
-                    e.altKey,
-                    e.shiftKey, 
-                    e.metaKey,
-                    e.button, 
-                    null // no related element
-                  );
-
-                  // Dispatch the mousemove event on the iframe element
-                  iframe.dispatchEvent(evt);
-                };
-
-                // Attach a new onmousemove listener
-                window.document.onmouseup = function(e) {
-                  // Fire any existing onmousemove listener 
-                  if(existingOnMouseUp) existingOnMouseUp(e);
-
-                  // Create a new event for the this window
-                  var evt = document.createEvent("MouseEvents");
-
-                  // We'll need this to offset the mouse move appropriately
-                  var boundingClientRect = iframe.getBoundingClientRect();
-
-                  // Initialize the event, copying exiting event values
-                  // for the most part
-                  evt.initMouseEvent( 
-                    "mouseup", 
-                    true, // bubbles
-                    false, // not cancelable 
-                    window,
-                    e.detail,
-                    e.screenX,
-                    e.screenY, 
-                    e.clientX + boundingClientRect.left, 
-                    e.clientY + boundingClientRect.top, 
-                    e.ctrlKey, 
-                    e.altKey,
-                    e.shiftKey, 
-                    e.metaKey,
-                    e.button, 
-                    null // no related element
-                  );
-
-                  // Dispatch the mouseup event on the iframe element
-                  iframe.dispatchEvent(evt);
-                };
-              }
-
-              self.sendMessage({
-                fn: "start_drag_iframe",
-                clientX: event.clientX,
-                clientY: event.clientY
-              });
-              return false;
-            } else {
-              console.log("Mousedown not on handle ignored");
+        // Register mouse down event
+        handles.mousedown(function (event) {
+          // Check event target, otherwise in IE we trigger a false drag
+          // even if an area element is clicked
+          if (handles.index(event.target) >= 0) {
+            // Run it through the function to setup bubbling
+            if (!self.activeDraggable) {
+              bubbleIframeMouseMove(window.parent.document.getElementById(frame_id));
+              self.activeDraggable = true;
             }
-          });
-          resolve("OK");
-        } else {
-          reject(new Error("Host not found"));
-        }
-      });
+
+            // Mouse up/move execution from the parent of the the iframe
+            function bubbleIframeMouseMove(iframe) {
+              // Save any previous onmousemove handler
+              var existingOnMouseMove = window.document.onmousemove;
+              var existingOnMouseUp = window.document.onmouseup;
+
+              // Attach a new onmousemove listener
+              window.document.onmousemove = function(e) {
+                // Fire any existing onmousemove listener 
+                if(existingOnMouseMove) existingOnMouseMove(e);
+
+                // Create a new event for the this window
+                var evt = document.createEvent("MouseEvents");
+
+                // We'll need this to offset the mouse move appropriately
+                var boundingClientRect = iframe.getBoundingClientRect();
+
+                // Initialize the event, copying exiting event values
+                // for the most part
+                evt.initMouseEvent( 
+                  "mousemove", 
+                  true, // bubbles
+                  false, // not cancelable 
+                  window,
+                  e.detail,
+                  e.screenX,
+                  e.screenY, 
+                  e.clientX + boundingClientRect.left, 
+                  e.clientY + boundingClientRect.top, 
+                  e.ctrlKey, 
+                  e.altKey,
+                  e.shiftKey, 
+                  e.metaKey,
+                  e.button, 
+                  null // no related element
+                );
+
+                // Dispatch the mousemove event on the iframe element
+                iframe.dispatchEvent(evt);
+              };
+
+              // Attach a new onmousemove listener
+              window.document.onmouseup = function(e) {
+                // Fire any existing onmousemove listener 
+                if(existingOnMouseUp) existingOnMouseUp(e);
+
+                // Create a new event for the this window
+                var evt = document.createEvent("MouseEvents");
+
+                // We'll need this to offset the mouse move appropriately
+                var boundingClientRect = iframe.getBoundingClientRect();
+
+                // Initialize the event, copying exiting event values
+                // for the most part
+                evt.initMouseEvent( 
+                  "mouseup", 
+                  true, // bubbles
+                  false, // not cancelable 
+                  window,
+                  e.detail,
+                  e.screenX,
+                  e.screenY, 
+                  e.clientX + boundingClientRect.left, 
+                  e.clientY + boundingClientRect.top, 
+                  e.ctrlKey, 
+                  e.altKey,
+                  e.shiftKey, 
+                  e.metaKey,
+                  e.button, 
+                  null // no related element
+                );
+
+                // Dispatch the mouseup event on the iframe element
+                iframe.dispatchEvent(evt);
+              };
+            }
+
+            self.sendMessage({
+              fn: "start_drag_iframe",
+              clientX: event.clientX,
+              clientY: event.clientY
+            });
+            return false;
+          } else {
+            console.log("Mousedown not on handle ignored");
+          }
+        });
+        return Promise.resolve("OK");
+      } else {
+        return Promise.reject(new Error("Host not found"));
+      }
     },
 
     /**

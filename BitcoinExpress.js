@@ -1,6 +1,4 @@
 /**
- * Bitcoin-express payment library.
- *
  * Copyright (c) 2018-present, RMP Protection Ltd.
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -108,10 +106,44 @@ var BitcoinExpress = {
 
       return new Promise(function (resolve, reject) {
         //Listen for wallet messages
-        var manageWalletEvents = function(event) {
-          console.log("startWallet.manageWalletEvents",event);
+        var manageWalletEvents = function (event) {
           var message = event.data;
-          console.log("CROSS DOMAIN::"+message.fn, message);
+          if (message.fn !== "bubble_up_mousemove") {
+            console.log("startWallet.manageWalletEvents", event);
+            console.log("CROSS DOMAIN::"+message.fn, message);
+          }
+
+          function disableScroll(hide) {
+            if (window.addEventListener) {
+              // older FF
+              window.addEventListener('DOMMouseScroll', B_E._.preventDefault, false);
+            }
+            // modern standard
+            window.onwheel = B_E._.preventDefault;
+            // older browsers, IE
+            window.onmousewheel = document.onmousewheel = B_E._.preventDefault;
+            // mobile
+            window.ontouchmove = B_E._.preventDefault;
+            document.onkeydown = B_E._.preventDefaultForScrollKeys;
+            document.getElementsByTagName("body")[0].style.overflow = "hidden";
+
+            if (hide) {
+              // TO_DO, this is coming from parent
+              // no need so far...
+              // window.parent.document.getElementsByTagName("body")[0].style.visibility = "hidden";
+            }
+          }
+
+          function enableScroll() {
+            if (window.removeEventListener) {
+              window.removeEventListener('DOMMouseScroll', B_E._.preventDefault, false);
+            }
+            window.onmousewheel = document.onmousewheel = null; 
+            window.onwheel = null; 
+            window.ontouchmove = null;  
+            document.onkeydown = null;  
+            document.getElementsByTagName("body")[0].style.overflow = "scroll";
+          }
 
           /*
            * There are 2 classes of message that are expected.
@@ -119,11 +151,38 @@ var BitcoinExpress = {
            * B. Process and terminate
            */
           switch (message.fn) {
-            //A. Alter the display and carry on
+            case "bubble_up_mousemove":
+              if (!self.dragging) {
+                break;
+              }
+              var iframe = document.getElementById(message.frameId);
+              var x_pos = message.screenX - self.x_elem;
+              var y_pos = message.screenY - self.y_elem;
+              iframe.style.left = (x_pos + document.documentElement.scrollLeft) + 'px';
+              iframe.style.top = (y_pos + document.documentElement.scrollTop) + 'px';
+              break;
+
+            case "bubble_up_mouseup":
+              var iframe = document.getElementById(message.frameId);
+              B_E.Wallet.WalletLastPosition = {
+                top: iframe.offsetTop,
+                left: iframe.offsetLeft
+              };
+              self.dragging = false;
+              break;
+
+            case "disable_scroll":
+              disableScroll(message.hide);
+              break;
+
+            case "enable_scroll":
+              enableScroll();
+              break;
+
             case "show_iframe" :
               B_E._.show_iframe(frame_id, null, true, null);
               break;
-                
+
             case "hide_iframe" :
               B_E._.show_iframe(frame_id, null, false, null);
               break;
@@ -149,6 +208,21 @@ var BitcoinExpress = {
                 if (self.isDraggable) {
                   enableScroll();
                 }
+              }
+
+              if (message.walletId) {
+                // calculate position to move the wallet
+                var doc = document.documentElement;
+                var dims = B_E.Wallet.WalletLastPosition || { left: 0, top: 0 };
+                var scrollLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
+                var scrollTop = (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0);
+
+                event.source.postMessage({
+                  fn: "relocateWallet",
+                  left: dims.left - scrollLeft,
+                  top: dims.top - scrollTop,
+                  walletId: message.walletId
+                }, "*");
               }
               break;
 
@@ -178,7 +252,7 @@ var BitcoinExpress = {
               if (!self.isDraggable) {
                 break;
               }
-              B_E._.start_drag_iframe(message.clientX || message.pageX, message.clientY || message.pageY, frame_id);
+              B_E._.start_drag_iframe(message.clientX, message.clientY, frame_id);
               break;
 
             case "popup_message" :
@@ -196,20 +270,19 @@ var BitcoinExpress = {
               document.cookie = "BitcoinExpressWallet=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
               enableScroll();
               window.removeEventListener("message", manageWalletEvents, false);
-              //reject(message.reason || "Removed");
               $("iframe.wallet").remove();
               break;
 
             case "handle_failure" :
               window.removeEventListener("message", manageWalletEvents, false);
               enableScroll();
-              //reject(message.reason);
               $("iframe.wallet").remove();
               break;
 
             case "payment" :
-              if(!("payment" in message)) {
+              if (!message.payment) {
                 reject(new Error("System error"));
+                break;
               }
               var Payment = message.payment;
               console.log("Payment.id", Payment.id);
@@ -224,33 +297,49 @@ var BitcoinExpress = {
                 timeout: (15 * 1000),
                 async: true,
                 success: function (paymentAck_container) {
-                  console.log("paymentAck_container",paymentAck_container,Payment);
-                  if (!("PaymentAck" in paymentAck_container)) {
-                    event.source.postMessage({"err" : "PaymentAck undefined"}, "*");
+                  var PaymentAck = paymentAck_container.PaymentAck;
+                  console.log("paymentAck_container", paymentAck_container, Payment);
+
+                  if (!PaymentAck) {
+                    event.source.postMessage({
+                      err: "PaymentAck undefined"
+                    }, "*");
                     window.removeEventListener("message", manageWalletEvents, false);
-                  } else {
-                    var PaymentAck = paymentAck_container.PaymentAck;
-                    if(!("id" in PaymentAck && PaymentAck.id == Payment.Payment.id)) {
-                      event.source.postMessage({"err" : "PaymentAck.id undefined or incorrect"}, "*");
-                      window.removeEventListener("message", manageWalletEvents, false);
-                    } else if(!("return_url" in PaymentAck)) {
-                      event.source.postMessage({"err" : "PaymentAck.return_url undefined"}, "*");
-                      window.removeEventListener("message", manageWalletEvents, false);
-                    } else {
-                      var paymentAckReceivedEvents = function (event) {
-                        console.log("startWallet.paymentAckReceivedEvents",event);
-                        var ackMessage = event.data;
-                        if("fn" in ackMessage && ackMessage.fn == "paymentAckAck") {
-                          //resolve(paymentAck_container);
-                          //return the paymentAck to the caller
-                          window.removeEventListener("message", paymentAckReceivedEvents, false);                    
-                        }
-                      };
-                      //Send the Ack to the Wallet
-                      event.source.postMessage({"fn" : "paymentAck", "ack" : paymentAck_container}, "*");
-                      window.addEventListener("message", paymentAckReceivedEvents, false);
-                    }
+                    return;
                   }
+
+                  if (!("id" in PaymentAck && PaymentAck.id == Payment.Payment.id)) {
+                    event.source.postMessage({
+                      err: "PaymentAck.id undefined or incorrect"
+                    }, "*");
+                    window.removeEventListener("message", manageWalletEvents, false);
+                    return;
+                  }
+                  
+                  if (!("return_url" in PaymentAck)) {
+                    event.source.postMessage({
+                      err: "PaymentAck.return_url undefined"
+                    }, "*");
+                    window.removeEventListener("message", manageWalletEvents, false);
+                    return;
+                  }
+
+                  var paymentAckReceivedEvents = function (event) {
+                    console.log("startWallet.paymentAckReceivedEvents",event);
+                    var ackMessage = event.data;
+                    if("fn" in ackMessage && ackMessage.fn == "paymentAckAck") {
+                      //resolve(paymentAck_container);
+                      //return the paymentAck to the caller
+                      window.removeEventListener("message", paymentAckReceivedEvents, false);                    
+                    }
+                  };
+
+                  // Send the Ack to the Wallet
+                  event.source.postMessage({
+                    fn: "paymentAck",
+                    ack: paymentAck_container
+                  }, "*");
+                  window.addEventListener("message", paymentAckReceivedEvents, false);
                 },
                 error: function(xhr, status, err) {
                   console.log(xhr, status, err);
@@ -259,7 +348,7 @@ var BitcoinExpress = {
                 }
               });  
               break;
-          }//end switch
+          } // end switch
         };
         window.addEventListener("message", manageWalletEvents, false);
         window.addEventListener("resize", function() {
@@ -295,50 +384,13 @@ var BitcoinExpress = {
     // Start dragging
     start_drag_iframe: function (clientX, clientY, iframe_id) {
       console.log("Starting drag on "+iframe_id+" at "+clientX+","+clientY);
-
-      // Scroll positions of the window
-      var doc = document.documentElement;
-      var x_elem = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
-      var y_elem = (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0);
-
-      var target = document.getElementById(iframe_id);
-      var x_pos = 0, y_pos = 0; // Mouse position relative to iframe
-
-      // Will be called when user dragging an element
-      function _move_elem(e) {
-        x_pos = document.all ? window.event.clientX : e.pageX;
-        y_pos = document.all ? window.event.clientY : e.pageY;
-        if (target !== null) {
-          if (x_pos > $(window).width()) {
-            target.style.left = (x_pos - clientX) + 'px';
-          } else {
-            target.style.left = (x_pos + x_elem - clientX) + 'px';
-          }
-          if (y_pos > $(window).height()) {
-            target.style.top = (y_pos - clientY) + 'px';
-          } else {
-            target.style.top = (y_pos + y_elem - clientY) + 'px';
-          }
-        }
+      var iframe = document.getElementById(iframe_id);
+      var boundingClientRect = iframe.getBoundingClientRect();
+      this.x_elem = clientX;
+      if (!this.y_elem) {
+        this.y_elem = clientY + boundingClientRect.top;
       }
-
-      // Destroy the object when we are done
-      function _destroy() {
-        if (!target) {
-          return;
-        }
-        B_E.Wallet.WalletLastPosition = {
-          top: target.offsetTop,
-          left: target.offsetLeft
-        };
-        document.onmousemove = null;
-        document.onmouseup = null;
-        target = null;
-      }
-
-      document.onmousemove = _move_elem;
-      document.onmouseup = _destroy;
-
+      this.dragging = true;
       return false;
     },
     
@@ -448,45 +500,41 @@ var BitcoinExpress = {
     },
 
     getPaymentRequest : function(payment_details, payment_request_url, version) {
-      
-      return new Promise(function(resolve,reject) {
-      
-      if(typeof payment_details === 'object') {
-        resolve({
-          "PaymentRequest" : {
-            "payment_details_version" : (typeof version === 'undefined' ? "1" : version),
-            "PaymentDetails" : payment_details
-          }
-        });
-      } else {
-        if(payment_request_url === null || typeof payment_request_url === 'undefined') {
-          reject(new error("Either Payment details or Payment url must be defined"));
-        } else {
-          $.ajax({
-            url: payment_request_url,
-            type: "GET",
-            accepts: { json: "application/json" },
-            contentType: "application/json",
-            dataType: "json",
-            timeout: (30 * 1000),
-            async: true,
-            
-            success: function(response) {
-              if("PaymentRequest" in response) {
-                resolve(response);
-              } else {
-                reject(new error("PaymentRequest not found"));
-              }
-            },
-            
-            error: function(xhr, status, err) {
-              console.log(xhr, status, err);
-              reject(new error("Payment function failed"));
+      return new Promise(function (resolve, reject) {
+        if (typeof payment_details === 'object') {
+          resolve({
+            PaymentRequest: {
+              payment_details_version: (typeof version === 'undefined' ? "1" : version),
+              PaymentDetails: payment_details
             }
           });
+        } else {
+          if(payment_request_url === null || typeof payment_request_url === 'undefined') {
+            reject(new Error("Either Payment details or Payment url must be defined"));
+          } else {
+            $.ajax({
+              url: payment_request_url,
+              type: "GET",
+              accepts: { json: "application/json" },
+              contentType: "application/json",
+              dataType: "json",
+              timeout: (30 * 1000),
+              async: true,
+              success: function(response) {
+                if("PaymentRequest" in response) {
+                  resolve(response);
+                } else {
+                  reject(new error("PaymentRequest not found"));
+                }
+              },
+              error: function(xhr, status, err) {
+                console.log(xhr, status, err);
+                reject(new error("Payment function failed"));
+              }
+            });
+          }
         }
-      }
-     });
+      });
     },
     
     setWalletSelectorStyle: function (elementStr) {
@@ -542,17 +590,20 @@ var BitcoinExpress = {
       }
 
       return new Promise(function (resolve, reject) {
+
         B_E._.buildWalletSelector("div#B_E_container");
+        $("#wallet-list").empty();
+
         // Must open the selector and allow the user to choose from a list of well known suppliers
         // Listen for the probes to respond and add them to the list for selection
         var registerProbe = function (event) {
-          console.log("registerProbe",event);
+          console.log("registerProbe", event);
           var message = event.data;
-          if("fn" in message && message.fn === "probe") {
+          if ("fn" in message && message.fn === "probe") {
             console.log("Received from "+event.origin+": Name "+message.displayName+" - "+ (message.active?"active":"inactive"));
-            // TO_DO
             var li = $("<li style='list-style:none;color: #00357d;font-size:110%;cursor:pointer;text-transform: uppercase' data-origin='"+event.origin+"'>"+message.displayName+"</li>");
             $("#wallet-list").append(li);
+            window.removeEventListener("message", registerProbe, false);
             li.click(function() {
               function setCookie(cname, cvalue, exdays) {
                 var d = new Date();
@@ -561,7 +612,6 @@ var BitcoinExpress = {
                 document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
               }
               setCookie("BitcoinExpressWallet", event.origin+message.walletName, 30);
-              window.removeEventListener("message", registerProbe, false);
               $("div#B_E_container").remove();
               resolve(event.origin+message.walletName);
             });
@@ -601,7 +651,7 @@ var BitcoinExpress = {
           // if an area element is clicked
           if (handles.index(event.target) >= 0) {
             var position = $("div#B_E_container").position();
-            B_E._.start_drag_iframe(event.clientX - position.left, event.clientY - position.top, "B_E_container");
+            B_E._.start_drag_iframe(event.screenX - position.left, event.screenY - position.top, "B_E_container");
             return false;
           } else {
             console.log("Mousedown not on handle ignored");
@@ -625,12 +675,32 @@ var BitcoinExpress = {
       return "";
     },
     
-    setCookie: function(cname, cvalue, exdays) {
+    setCookie: function (cname, cvalue, exdays) {
       var d = new Date();
       d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
       var expires = "expires="+d.toUTCString();
       document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    },
+
+    preventDefault: function (e) {
+      e = e || window.event;
+      if (e.preventDefault) {
+        e.preventDefault();
+      }
+      e.returnValue = false;
+    },
+
+    preventDefaultForScrollKeys: function (e) {
+      // left: 37, up: 38, right: 39, down: 40,
+      // spacebar: 32, pageup: 33, pagedown: 34, end: 35, home: 36
+      var keys = {37: 1, 38: 1, 39: 1, 40: 1};
+
+      if (keys[e.keyCode]) {
+        B_E._.preventDefault(e);
+        return false;
+      }
     }
+
   }, // end internal functions
 
   // Host functions are called by a wallet and communicate with the Host page
@@ -640,10 +710,10 @@ var BitcoinExpress = {
      * Initialise the Host by setting the library namespace to "B_E" 
      */  
     Initialise: function () {
-      if(!("B_E" in window)) {
+      if (!window.B_E) {
         window.B_E = window.BitcoinExpress;
         console.log("Setting B_E alias for window.BitcoinExpress wallet side");
-      }    
+      }
     },
 
     /**
@@ -656,45 +726,92 @@ var BitcoinExpress = {
      */
     WalletReveal: function (area, width, height, idDrag) {
       console.log("Host.WalletReveal", area, width, height, idDrag);
-      var self = this;
-      return new Promise(function(resolve,reject) {
-        if (typeof BitcoinExpress.Host != 'undefined') {
-          self.sendMessage({
-            fn: "resize_iframe",
-            width: width,
-            height: height
-          });
+      if (typeof BitcoinExpress.Host != 'undefined') {
+        this.sendMessage({
+          fn: "resize_iframe",
+          width: width,
+          height: height
+        });
 
-          self.sendMessage({
-            fn: "show_iframe"
-          });
+        this.sendMessage({
+          fn: "show_iframe"
+        });
 
-          if (idDrag) {
-            self.WalletMakeDraggable(idDrag);
-          }
-
-          B_E.Wallet.Dimentions.WalletWidth = width;
-          B_E.Wallet.Dimentions.WalletHeight = height;
-          B_E.Wallet.Dimentions.WalletArea = $("#" + area);
-          resolve("OK");
-        } else {
-          reject(new Error("Host not found"));
+        if (idDrag) {
+          this.WalletMakeDraggable(idDrag);
         }
-      });
+
+        B_E.Wallet.Dimentions.WalletWidth = width;
+        B_E.Wallet.Dimentions.WalletHeight = height;
+        B_E.Wallet.Dimentions.WalletArea = $("#" + area);
+        return Promise.resolve("OK");
+      }
+
+      return Promise.reject(new Error("Host not found"));
     },
 
     /**
      * @param goModal [bool]
      * @param width [number]
      * @param height [number]
+     * @param walletId [string] - default null 
      */
-    WalletGoModal: function (goModal, width, height) {
+    WalletGoModal: function (goModal, width, height, walletId) {
       console.log("Host.WalletGoModal", goModal, width, height);
-      this.sendMessage({
-        fn: "gomodal_iframe",
-        width: width,
-        height: height,
-        goModal: goModal
+
+      var self = this;
+      return new Promise(function (resolve, reject) {
+        if (!BitcoinExpress.Host) {
+          reject(Error("Bitcoin-express not initialised"));
+          return;
+        }
+
+        var message = {
+          fn: "gomodal_iframe",
+          width: width,
+          height: height,
+          goModal: goModal
+        };
+
+        if (walletId) {
+          message['walletId'] = walletId;
+
+          // Prepare for relocating the wallet position of the retracted version
+          var gomodalReceivedEvent = function (event) {
+            console.log("Host.WalletGoModal.gomodalReceivedEvent", event);
+            var data = event.data;
+            if (typeof data == "string") {
+              data = JSON.parse(event.data);
+            }
+
+            if ("fn" in data && data.fn == "relocateWallet") {
+              $("#" + data.walletId).css({
+                left: data.left,
+                top: data.top,
+                position: 'absolute'
+              });
+              setTimeout(function () {
+                $("#" + data.walletId).fadeIn('fast');
+              }, 600);
+
+              window.removeEventListener("message", gomodalReceivedEvent, false);
+              resolve("OK");
+              return;
+            }
+
+            if ("err" in data) {
+              reject(data.err);
+              return;
+            }
+            reject(Error("Problem on processing payment"));
+          };
+
+          window.addEventListener("message", gomodalReceivedEvent, false);
+          self.sendMessage(message);
+        } else {
+          self.sendMessage(message);
+          resolve("OK");
+        }
       });
     },
     
@@ -706,20 +823,20 @@ var BitcoinExpress = {
      */
     WalletClose: function (message, reason) {
       console.log("WalletClose ", message, reason);
-      if (typeof BitcoinExpress.Host != 'undefined') {
-        this.sendMessage({
-          fn: "popup_message",
-          message: message,
-          period: 4000
-        });
-        this.sendMessage({
-          fn: "handle_failure",
-          reason: reason
-        });
-        return Promise.resolve("OK");
-      } else {
+      if (!BitcoinExpress.Host) {
         return Promise.reject(new Error("Host not found"));
       }
+
+      this.sendMessage({
+        fn: "popup_message",
+        message: message,
+        period: 4000
+      });
+      this.sendMessage({
+        fn: "handle_failure",
+        reason: reason
+      });
+      return Promise.resolve("OK");
     },
 
     /**
@@ -730,20 +847,20 @@ var BitcoinExpress = {
     */
     WalletRemove: function (message, reason) {
       console.log("WalletRemove ", message, reason);
-      if (typeof BitcoinExpress.Host != 'undefined') {
-        this.sendMessage({
-          fn: "popup_message",
-          message: message,
-          period: 4000
-        });
-        this.sendMessage({
-          fn: "remove_wallet",
-          reason: reason
-        });
-        return Promise.resolve("OK");
-      } else {
+      if (!BitcoinExpress.Host) {
         return Promise.reject(new Error("Host not found"));
       }
+
+      this.sendMessage({
+        fn: "popup_message",
+        message: message,
+        period: 4000
+      });
+      this.sendMessage({
+        fn: "remove_wallet",
+        reason: reason
+      });
+      return Promise.resolve("OK");
     },
 
     /**
@@ -753,29 +870,35 @@ var BitcoinExpress = {
      */
     WalletFullScreen: function (goFullScreen) {
       console.log("WalletFullScreen", goFullScreen);
-      if (typeof BitcoinExpress.Host != 'undefined') {
-        if (goFullScreen) {
-          disableScroll();
-          setTimeout(function () {
-            this.sendMessage({
-              fn: "resize_iframe",
-              fullScreen: true,
-            });
-            document.getElementsByTagName("body")[0].style.visibility = "inherit";
-          }, 500);
-        } else {
-          enableScroll();
-          this.sendMessage({
-            fn: "resize_iframe",
-            width: B_E.Wallet.Dimentions.WalletWidth,
-            height: BitcoinExpress.Wallet.Dimentions.WalletHeight,
-            fullScreen: false
-          });
-        }
-        return Promise.resolve("OK");
-      } else {
+      if (!BitcoinExpress.Host) {
         return Promise.reject(new Error("Host not found"));
       }
+
+      if (goFullScreen) {
+        this.sendMessage({
+          fn: "disable_scroll",
+          hide: true
+        }, "*");
+        var self = this;
+        setTimeout(function () {
+          self.sendMessage({
+            fn: "resize_iframe",
+            fullScreen: true,
+          });
+          document.getElementsByTagName("body")[0].style.visibility = "inherit";
+        }, 500);
+      } else {
+        this.sendMessage({
+          fn: "enable_scroll"
+        }, "*");
+        this.sendMessage({
+          fn: "resize_iframe",
+          width: B_E.Wallet.Dimentions.WalletWidth,
+          height: BitcoinExpress.Wallet.Dimentions.WalletHeight,
+          fullScreen: false
+        });
+      }
+      return Promise.resolve("OK");
     },
 
     /**
@@ -786,7 +909,7 @@ var BitcoinExpress = {
     WalletMakeDraggable: function (handles) {
       console.log("WalletMakeDraggable ", handles);
 
-      if (handles) {
+      if (typeof handles == "string") {
         handles = $("#" + handles);
       } else {
         handles = handles || $('body');
@@ -794,7 +917,6 @@ var BitcoinExpress = {
 
       if (typeof BitcoinExpress.Host != 'undefined') {
         var self = this;
-
         // Register mouse down event
         handles.mousedown(function (event) {
           // Check event target, otherwise in IE we trigger a false drag
@@ -802,84 +924,58 @@ var BitcoinExpress = {
           if (handles.index(event.target) >= 0) {
             // Run it through the function to setup bubbling
             if (!self.activeDraggable) {
-              bubbleIframeMouseMove(window.parent.document.getElementById(frame_id));
+              bubbleIframeMouseMove(frame_id);
               self.activeDraggable = true;
             }
 
             // Mouse up/move execution from the parent of the the iframe
-            function bubbleIframeMouseMove(iframe) {
+            function bubbleIframeMouseMove(iframeId) {
               // Save any previous onmousemove handler
               var existingOnMouseMove = window.document.onmousemove;
               var existingOnMouseUp = window.document.onmouseup;
 
               // Attach a new onmousemove listener
-              window.document.onmousemove = function(e) {
+              window.document.onmousemove = function (e) {
                 // Fire any existing onmousemove listener 
-                if(existingOnMouseMove) existingOnMouseMove(e);
-
-                // Create a new event for the this window
-                var evt = document.createEvent("MouseEvents");
-
-                // We'll need this to offset the mouse move appropriately
-                var boundingClientRect = iframe.getBoundingClientRect();
-
-                // Initialize the event, copying exiting event values
-                // for the most part
-                evt.initMouseEvent( 
-                  "mousemove", 
-                  true, // bubbles
-                  false, // not cancelable 
-                  window,
-                  e.detail,
-                  e.screenX,
-                  e.screenY, 
-                  e.clientX + boundingClientRect.left, 
-                  e.clientY + boundingClientRect.top, 
-                  e.ctrlKey, 
-                  e.altKey,
-                  e.shiftKey, 
-                  e.metaKey,
-                  e.button, 
-                  null // no related element
-                );
-
-                // Dispatch the mousemove event on the iframe element
-                iframe.dispatchEvent(evt);
+                if (existingOnMouseMove) {
+                  existingOnMouseMove(e);
+                }
+                self.sendMessage({
+                  fn: "bubble_up_mousemove",
+                  frameId: iframeId,
+                  detail: e.detail,
+                  screenX: e.screenX,
+                  screenY: e.screenY,
+                  clientX: e.clientX, 
+                  clientY: e.clientY,
+                  ctrlKey: e.ctrlKey,
+                  altKey: e.altKey,
+                  shiftKey: e.shiftKey,
+                  metaKey: e.metaKey,
+                  button: e.button,
+                });
               };
 
               // Attach a new onmousemove listener
               window.document.onmouseup = function(e) {
                 // Fire any existing onmousemove listener 
-                if(existingOnMouseUp) existingOnMouseUp(e);
-
-                // Create a new event for the this window
-                var evt = document.createEvent("MouseEvents");
-
-                // We'll need this to offset the mouse move appropriately
-                var boundingClientRect = iframe.getBoundingClientRect();
-
-                // Initialize the event, copying exiting event values
-                // for the most part
-                evt.initMouseEvent( 
-                  "mouseup", 
-                  true, // bubbles
-                  false, // not cancelable 
-                  window,
-                  e.detail,
-                  e.screenX,
-                  e.screenY, 
-                  e.clientX + boundingClientRect.left, 
-                  e.clientY + boundingClientRect.top, 
-                  e.ctrlKey, 
-                  e.altKey,
-                  e.shiftKey, 
-                  e.metaKey,
-                  e.button, 
-                  null // no related element
-                );
-
-                // Dispatch the mouseup event on the iframe element
-                iframe.dispatchEvent(evt);
+                if (existingOnMouseUp) {
+                  existingOnMouseUp(e);
+                }
+                self.sendMessage({
+                  fn: "bubble_up_mouseup",
+                  frameId: iframeId,
+                  detail: e.detail,
+                  screenX: e.screenX,
+                  screenY: e.screenY,
+                  clientX: e.clientX, 
+                  clientY: e.clientY,
+                  ctrlKey: e.ctrlKey,
+                  altKey: e.altKey,
+                  shiftKey: e.shiftKey,
+                  metaKey: e.metaKey,
+                  button: e.button,
+                });
               };
             }
 
@@ -905,36 +1001,40 @@ var BitcoinExpress = {
      * @param amount [Number] The value of the payment
      * @return A Promise that resolves to a Bitcoin-express PaymentAck object or an Error
      */
-    Payment : function(payment, amount) {
-      console.log("Payment",payment,amount);
+    Payment: function (payment, amount) {
+      console.log("Payment", payment, amount);
       var self = this;
-      return new Promise(function(resolve,reject) {
-        if (typeof BitcoinExpress.Host != 'undefined') {
-          //prepare for the paymentAck to come back
-          var paymentAckReceivedEvents = function (event) {
-            console.log("Host.Payment.paymentAckReceivedEvents", event);
-            var data = event.data;
-            if (typeof event.data == "string") {
-              data = JSON.parse(event.data);
-            }
-            var ackMessage = data;
-            window.removeEventListener("message", paymentAckReceivedEvents, false);
-            if ("fn" in ackMessage && ackMessage.fn == "paymentAck") {
-              resolve(ackMessage.ack);
-            } else if ("err" in ackMessage) {
-              reject(ackMessage.err);
-            } else {
-              reject(Error("Problem on processing payment"));
-            }
-          };
-          window.addEventListener("message", paymentAckReceivedEvents, false);
-          self.sendMessage({
-            fn: "payment",
-            payment: payment
-          });
-        } else {
+      return new Promise(function (resolve, reject) {
+        if (!BitcoinExpress.Host) {
           reject(Error("Bitcoin-express not initialised"));
+          return;
         }
+
+        // Prepare for the paymentAck to come back
+        var paymentAckReceivedEvents = function (event) {
+          console.log("Host.Payment.paymentAckReceivedEvents", event);
+          var data = event.data;
+          if (typeof data == "string") {
+            data = JSON.parse(event.data);
+          }
+
+          window.removeEventListener("message", paymentAckReceivedEvents, false);
+          if ("fn" in data && data.fn == "paymentAck") {
+            resolve(data.ack);
+            return;
+          }
+          if ("err" in data) {
+            reject(data.err);
+            return;
+          }
+          reject(Error("Problem on processing payment"));
+        };
+
+        window.addEventListener("message", paymentAckReceivedEvents, false);
+        self.sendMessage({
+          fn: "payment",
+          payment: payment
+        });
       });
     },
     
@@ -945,15 +1045,14 @@ var BitcoinExpress = {
      */
     PaymentAckAck : function() {
       console.log("Host.PaymentAckAck");
-      var self = this;
-      return new Promise(function(resolve,reject) {
-          if(typeof BitcoinExpress.Host != 'undefined') {
-            B_E.Host.sendMessage({"fn" : "paymentAckAck"});
-            resolve("OK");
-          } else {
-            reject(new Error("Bitcoin-express not initialised"));
-          }
-      });
+      if (typeof BitcoinExpress.Host != 'undefined') {
+        B_E.Host.sendMessage({
+          fn: "paymentAckAck"
+        });
+        return Promise.resolve("OK");
+      } else {
+        return Promise.reject(new Error("Bitcoin-express not initialised"));
+      }
     },
     
     /**
@@ -963,73 +1062,22 @@ var BitcoinExpress = {
      * @return A Promise that resolves to "OK" of an Error
      */
     PopupMessage: function (text, duration_ms) {
-      console.log("Host.PopupMessage",text,duration_ms);
-      var self = this;
-      return new Promise(function(resolve,reject) {
-        if(typeof BitcoinExpress.Host != 'undefined') {
-          self.sendMessage({"fn" : "popup_message", "message" : text, "period" : duration_ms});
-          resolve("OK");
-        } else {
-          reject(new Error("Bitcoin-express not initialised"));
-        }
-      });
+      console.log("Host.PopupMessage", text, duration_ms);
+      if (typeof BitcoinExpress.Host != 'undefined') {
+        this.sendMessage({
+          fn: "popup_message",
+          message: text,
+          period: duration_ms
+        });
+        return Promise.resolve("OK");
+      } else {
+        return Promise.reject(new Error("Bitcoin-express not initialised"));
+      }
     },
     
     sendMessage: function (message) {
-      console.log("Host.sendMessage",message);
+      // console.log("Host.sendMessage", message);
       parent.postMessage(message, "*");
     }
   } //end host
 };
-
-function preventDefault(e) {
-  e = e || window.parent.event;
-  if (e.preventDefault) {
-    e.preventDefault();
-  }
-  e.returnValue = false;  
-}
-
-function preventDefaultForScrollKeys(e) {
-  // left: 37, up: 38, right: 39, down: 40,
-  // spacebar: 32, pageup: 33, pagedown: 34, end: 35, home: 36
-  var keys = {37: 1, 38: 1, 39: 1, 40: 1};
-
-  if (keys[e.keyCode]) {
-    preventDefault(e);
-    return false;
-  }
-}
-
-function disableScroll(hide) {
-  if (hide == undefined) {
-    hide = true;
-  }
-  if (window.parent.addEventListener) {
-    // older FF
-    window.parent.addEventListener('DOMMouseScroll', preventDefault, false);
-  }
-  // modern standard
-  window.parent.onwheel = preventDefault;
-  // older browsers, IE
-  window.parent.onmousewheel = window.parent.document.onmousewheel = preventDefault;
-  // mobile
-  window.parent.ontouchmove  = preventDefault;
-  window.parent.document.onkeydown  = preventDefaultForScrollKeys;
-  window.parent.document.getElementsByTagName("body")[0].style.overflow = "hidden";
-
-  if (hide) {
-    document.getElementsByTagName("body")[0].style.visibility = "hidden";
-  }
-}
-
-function enableScroll() {
-  if (window.removeEventListener) {
-    window.parent.removeEventListener('DOMMouseScroll', preventDefault, false);
-  }
-  window.parent.onmousewheel = window.parent.document.onmousewheel = null; 
-  window.parent.onwheel = null; 
-  window.parent.ontouchmove = null;  
-  window.parent.document.onkeydown = null;  
-  window.parent.document.getElementsByTagName("body")[0].style.overflow = "scroll";
-}

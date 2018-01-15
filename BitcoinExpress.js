@@ -163,12 +163,14 @@ var BitcoinExpress = {
               break;
 
             case "bubble_up_mouseup":
-              var iframe = document.getElementById(message.frameId);
-              B_E.Wallet.WalletLastPosition = {
-                top: iframe.offsetTop,
-                left: iframe.offsetLeft
-              };
-              self.dragging = false;
+              if (self.dragging) {
+                var iframe = document.getElementById(message.frameId);
+                B_E.Wallet.WalletLastPosition = {
+                  top: iframe.offsetTop,
+                  left: iframe.offsetLeft
+                };
+                self.dragging = false;
+              }
               break;
 
             case "disable_scroll":

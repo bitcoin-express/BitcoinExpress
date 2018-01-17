@@ -395,6 +395,39 @@ var BitcoinExpress = {
       this.dragging = true;
       return false;
     },
+
+    start_drag_element: function (clientX, clientY, element_id) {
+      // Scroll positions of the window
+      var target = document.getElementById(element_id);
+
+      // Will be called when user dragging an element
+      function _move_elem (e) {
+        if (target !== null) {
+          var ev = window.event || e;
+          target.style.left = (ev.clientX - clientX) + 'px';
+          target.style.top = (ev.clientY - clientY) + 'px';
+        }
+       }
+
+      // Destroy the object when we are done
+      function _destroy() {
+        if (!target) {
+          return;
+        }
+        B_E.Wallet.WalletLastPosition = {
+          top: target.offsetTop,
+          left: target.offsetLeft
+        };
+        document.onmousemove = null;
+        document.onmouseup = null;
+        target = null;
+      }
+
+      document.onmousemove = _move_elem;
+      document.onmouseup = _destroy;
+
+      return false;
+    },
     
     // ---------------------------------------------------------------
     // Show/hide an IFRAME, with position used as follows:
@@ -402,7 +435,7 @@ var BitcoinExpress = {
     //      or centre of parent window the first time
     //   If a string, it is centred over the element with that id
     //   If an object with { left, top } it is positioned there directly
-    show_iframe: function(iframe_id, params, show, position) {
+    show_iframe: function (iframe_id, params, show, position) {
       console.log((show?"Showing":"Hiding")+" IFRAME "+iframe_id);
 
       var iframe = $('#'+iframe_id);
@@ -573,12 +606,13 @@ var BitcoinExpress = {
 
       var styleLine = 'width: 220px; margin: 5px auto; color: #efefef';
 
-      $("div#B_E_container").append("<img id='logo_selector' src='https://bitcoin-e.org/wallet/css/img/BitcoinExpress.svg' style='margin: 10px; cursor: move;' />");
+      //$("div#B_E_container").append("<img id='logo_selector' src='https://bitcoin-e.org/wallet/css/img/BitcoinExpress.svg' style='margin: 10px; cursor: move;' />");
+      $("div#B_E_container").append("<img id='logo_selector' src='../css/img/BitcoinExpress.svg' style='margin: 10px; cursor: move;' />");
       $("div#B_E_container").append("<p style='" + styleLine + "'>Select your Wallet supplier:</p>");
       $("div#B_E_container").append("<ul style='padding: 0 0 0 0' type='text' id='wallet-list'></ul>");
       $("div#B_E_container").append("<p style='" + styleLine + "'>- OR -</p>");
       $("div#B_E_container").append("<p style='" + styleLine + "'>Enter your Wallet's domain</p>");
-      $("div#B_E_container").append("<input id='user-domain' style='width: 168px; margin-top: 10px'/> <button name='ok'>OK</button>");
+      $("div#B_E_container").append("<input id='user-domain' style='width: 148px; margin-top: 10px'/> <button name='ok'>OK</button>");
       $("div#B_E_container").append("<br/><br/>");
       $("div#B_E_container").append("<button name='cancel' style='margin-top: 20px; cursor: pointer;'>Cancel</button>");
     },
@@ -653,7 +687,7 @@ var BitcoinExpress = {
           // if an area element is clicked
           if (handles.index(event.target) >= 0) {
             var position = $("div#B_E_container").position();
-            B_E._.start_drag_iframe(event.screenX - position.left, event.screenY - position.top, "B_E_container");
+            B_E._.start_drag_element(event.clientX - position.left, event.clientY - position.top, "B_E_container");
             return false;
           } else {
             console.log("Mousedown not on handle ignored");

@@ -156,10 +156,8 @@ var BitcoinExpress = {
                 break;
               }
               var iframe = document.getElementById(message.frameId);
-              var x_pos = message.screenX - self.x_elem;
-              var y_pos = message.screenY - self.y_elem;
-              iframe.style.left = (x_pos + document.documentElement.scrollLeft) + 'px';
-              iframe.style.top = (y_pos + document.documentElement.scrollTop) + 'px';
+              iframe.style.left = (self.x_elem + message.screenX) + 'px';
+              iframe.style.top = (self.y_elem + message.screenY) + 'px';
               break;
 
             case "bubble_up_mouseup":
@@ -254,7 +252,7 @@ var BitcoinExpress = {
               if (!self.isDraggable) {
                 break;
               }
-              B_E._.start_drag_iframe(message.clientX, message.clientY, frame_id);
+              B_E._.start_drag_iframe(message.screenX, message.screenY, frame_id);
               break;
 
             case "popup_message" :
@@ -384,14 +382,11 @@ var BitcoinExpress = {
     
     // ---------------------------------------------------------------
     // Start dragging
-    start_drag_iframe: function (clientX, clientY, iframe_id) {
-      console.log("Starting drag on "+iframe_id+" at "+clientX+","+clientY);
+    start_drag_iframe: function (screenX, screenY, iframe_id) {
       var iframe = document.getElementById(iframe_id);
-      var boundingClientRect = iframe.getBoundingClientRect();
-      this.x_elem = clientX;
-      if (!this.y_elem) {
-        this.y_elem = clientY + boundingClientRect.top;
-      }
+      this.x_elem = iframe.offsetLeft - screenX;
+      this.y_elem = iframe.offsetTop - screenY;
+      console.log("Starting drag on "+iframe_id+" at "+this.x_elem+","+this.y_elem);
       this.dragging = true;
       return false;
     },
@@ -982,8 +977,14 @@ var BitcoinExpress = {
                   detail: e.detail,
                   screenX: e.screenX,
                   screenY: e.screenY,
+                  pageX: e.pageX,
+                  pageY: e.pageY,
+                  offsetX: e.offsetX,
+                  offsetY: e.offsetY,
                   clientX: e.clientX, 
                   clientY: e.clientY,
+                  movementX: e.movementX, 
+                  movementY: e.movementY,
                   ctrlKey: e.ctrlKey,
                   altKey: e.altKey,
                   shiftKey: e.shiftKey,
@@ -1015,10 +1016,11 @@ var BitcoinExpress = {
               };
             }
 
+            var ev = window.event || event;
             self.sendMessage({
               fn: "start_drag_iframe",
-              clientX: event.clientX,
-              clientY: event.clientY
+              screenX: ev.screenX,
+              screenY: ev.screenY
             });
             return false;
           } else {

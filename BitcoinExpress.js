@@ -156,8 +156,18 @@ var BitcoinExpress = {
                 break;
               }
               var iframe = document.getElementById(message.frameId);
-              iframe.style.left = (self.x_elem + message.screenX) + 'px';
-              iframe.style.top = (self.y_elem + message.screenY) + 'px';
+              var left = self.x_elem + message.screenX;
+              var top = self.y_elem + message.screenY;
+
+              if (left < 0) {
+                left = 0;
+              }
+              if (top < 0) {
+                top = 0;
+              }
+
+              iframe.style.left = left + 'px';
+              iframe.style.top = top + 'px';
               break;
 
             case "bubble_up_mouseup":

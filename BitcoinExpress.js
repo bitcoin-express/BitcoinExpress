@@ -12,7 +12,7 @@ var BitcoinExpress = {
   //Public functions to be called by site owner
   Initialise: function() {
     console.log("BitcoinExpress.Initialise");
-    if(!("B_E" in window)) {
+    if (!window.B_E) {
       window.B_E = window.BitcoinExpress;
       console.log("Setting B_E alias for window.BitcoinExpress host side");
     } else {
@@ -55,14 +55,15 @@ var BitcoinExpress = {
      * @param version [Number] (optional) Defaults to 1
      * @return A Promise that resolves to a PaymentAck object or an Error
      */
-    PaymentRequest: function(payment_details, payment_request_url, version) {
-      BitcoinExpress.Initialise();      
-      return B_E._.getPaymentRequest(payment_details, payment_request_url, version).then(function(paymentRequest) {
+    PaymentRequest: function (payment_details, payment_request_url, version) {
+      var paymentRequest;
+      BitcoinExpress.Initialise();
+      return B_E._.getPaymentRequest(payment_details, payment_request_url, version).then(function (response) {
+        paymentRequest = response;
         return B_E._.getWalletDomain();
-      }).then(function(domain) {
+      }).then(function (domain) {
         return B_E._.startWallet(domain, paymentRequest);
       });
-      //.catch(console.log.bind(console));
     }
   },
   // Internal functions
@@ -83,13 +84,13 @@ var BitcoinExpress = {
       walletUrl += "?fullScreen=" + fullScreen;
 
       var PaymentUrl = null;
-      if("PaymentRequest" in params) {
+      if ("PaymentRequest" in params) {
         var PaymentRequest = params.PaymentRequest
         walletUrl += "&paymentRequest="+encodeURI(JSON.stringify(params.PaymentRequest));
-        if("PaymentDetails" in PaymentRequest && "payment_url" in PaymentRequest.PaymentDetails) {
+        if ("PaymentDetails" in PaymentRequest && "payment_url" in PaymentRequest.PaymentDetails) {
           PaymentUrl = PaymentRequest.PaymentDetails.payment_url;
         }
-        if(PaymentUrl === null) {
+        if (PaymentUrl === null) {
           return Promise.reject(new Error("PaymentRequest has no payment_url"));
         }
       }

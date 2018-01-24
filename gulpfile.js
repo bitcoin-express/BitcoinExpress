@@ -20,6 +20,13 @@ var probes = {
       path: "",
       probe: "/wallet/probe.html",
       wallet: "/wallet/wallet.html"
+    }, {
+      domain: "localhost",
+      protocol: "http://",
+      port: ":8000",
+      path: "",
+      probe: "/wallet_swap/probe.html",
+      wallet: "/wallet_swap/wallet.html"
     }
   ],
   // MODIFY THIS ARRAY FOR PRODUCTION MODE
@@ -31,6 +38,13 @@ var probes = {
       path: "",
       probe: "/wallet/probe.html",
       wallet: "/wallet/wallet.html"
+    }, {
+      domain: "bitcoin-e.org",
+      protocol: "https://",
+      port: ":443",
+      path: "",
+      probe: "/wallet_swap/probe.html",
+      wallet: "/wallet_swap/wallet.html"
     }
   ]
 }

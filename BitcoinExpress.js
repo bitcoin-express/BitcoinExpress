@@ -645,7 +645,6 @@ var BitcoinExpress = {
             console.log("Received from "+event.origin+": Name "+message.displayName+" - "+ (message.active?"active":"inactive"));
             var li = $("<li style='list-style:none;color: #00357d;font-size:110%;cursor:pointer;text-transform: uppercase' data-origin='"+event.origin+"'>"+message.displayName+"</li>");
             $("#wallet-list").append(li);
-            window.removeEventListener("message", registerProbe, false);
             li.click(function() {
               function setCookie(cname, cvalue, exdays) {
                 var d = new Date();
@@ -655,6 +654,7 @@ var BitcoinExpress = {
               }
               setCookie("BitcoinExpressWallet", event.origin+message.walletName, 30);
               $("div#B_E_container").remove();
+              window.removeEventListener("message", registerProbe, false);
               resolve(event.origin+message.walletName);
             });
           } else {

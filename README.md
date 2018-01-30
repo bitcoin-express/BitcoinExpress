@@ -80,39 +80,31 @@ Open a wallet?
 
 Request a payment?
 ```javascript
-var payReq = {
-  fullScreen: false,
-  PaymentRequest: {
-    payment_details_version: "1",
-    PaymentDetails: {
-      payment_url: "your_payment_url",
-      currency: "XBT",
-      issuers: ["*.rmp.net","coinbase.com"],
-      amount: 0.0000123,
-      memo: "Your product to sell's name",
-      email: {
-        contact: "sales@merchant.com",
-        receipt: true,
-        refund: false
-      },
-      time: "2017-06-01T00:00:00Z",
-      expires: "2017-12-31T00:00:00Z"
-    }
-  }
-}
-
-BitcoinExpress.Wallet.Open(copyReq).then(function(response) {
-  if ("PaymentAck" in response) {
-    var PaymentAck = response.PaymentAck;
-    if ("status" in PaymentAck) {
-      console.log("Status is " + PaymentAck.status);
-      if (PaymentAck.status == "ok" && "return_url" in PaymentAck) {
-        // Redirect and display in browser the item bought
-        return window.location.replace(PaymentAck.return_url);
+  var payment_details_object = {
+    "PaymentRequest": {
+      "payment_details_version": "1",
+      "PaymentDetails": {
+        "payment_url": "https://merchant.com/",
+        "amount": "0.00123",
+        "merchant_data": "",
+        "issuers": ["(bitcoin-e.org)"],
+        "memo": "Human-readable description of request to the customer",
+        //optional
+        "email": {
+          "contact":"sales@merchant.com",
+          "receipt":true,
+          "refund":false
+        },
+        "currency": "XBT",
+        "time": "2017-05-15T10:50:23.167Z",
+        "expires": "2017-05-15T11:50:23.167Z",
       }
     }
-  }
-}).catch(function(err) {
-  console.log("PaymentRequest error", err);
-});
+  };
+
+  BitcoinExpress.PaymentRequest(payment_details_object).then(function(paymentAck_container) {
+    window.location.replace(paymentAck_container.PaymentAck.return_url);
+  }).catch(function(err) {
+    alert("Payment failed because "+err);
+  });
 ```

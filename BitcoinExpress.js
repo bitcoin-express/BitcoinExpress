@@ -319,7 +319,7 @@ var BitcoinExpress = {
                     return;
                   }
 
-                  if (!("id" in PaymentAck && PaymentAck.id == Payment.Payment.id)) {
+                  if (!("id" in PaymentAck && PaymentAck.id == Payment.id)) {
                     event.source.postMessage({
                       err: "PaymentAck.id undefined or incorrect"
                     }, "*");

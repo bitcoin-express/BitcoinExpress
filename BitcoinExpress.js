@@ -963,7 +963,7 @@ var BitcoinExpress = {
         handles.mousedown(function (event) {
           // Check event target, otherwise in IE we trigger a false drag
           // even if an area element is clicked
-          if (handles.index(event.target) >= 0) {
+          if (handles.index(event.target) >= 0 || handles.index(event.currentTarget) >= 0) {
             // Run it through the function to setup bubbling
             if (!self.activeDraggable) {
               bubbleIframeMouseMove(frame_id);

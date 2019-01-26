@@ -85,12 +85,9 @@ var BitcoinExpress = {
 
       var PaymentUrl = null;
       if ("PaymentRequest" in params) {
-        var PaymentRequest = params.PaymentRequest
+        var PaymentRequest = params.PaymentRequestResponse;
         walletUrl += "&paymentRequest="+encodeURI(JSON.stringify(params.PaymentRequest));
-        if ("PaymentDetails" in PaymentRequest && "payment_url" in PaymentRequest.PaymentDetails) {
-          PaymentUrl = PaymentRequest.PaymentDetails.payment_url;
-        }
-        if (PaymentUrl === null) {
+        if (!PaymentRequest.payment_url) {
           return Promise.reject(new Error("PaymentRequest has no payment_url"));
         }
       }
@@ -319,7 +316,7 @@ var BitcoinExpress = {
                     return;
                   }
 
-                  if (!("id" in PaymentAck && PaymentAck.id == Payment.id)) {
+                  if (!("id" in PaymentAck && PaymentAck.id == Payment.Payment.id)) {
                     event.source.postMessage({
                       err: "PaymentAck.id undefined or incorrect"
                     }, "*");

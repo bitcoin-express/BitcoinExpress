@@ -72,7 +72,6 @@ var BitcoinExpress = {
       console.log("starting wallet", url, params);
       // Add the wallet iframe
       $("body").append("<div id='B_E_container'/>");
-      var walletUrl = url;
 
       this.isDraggable = false;
       this.activeDraggable = false;
@@ -80,8 +79,14 @@ var BitcoinExpress = {
       this.isModal = false;
       this.frame_id =  frame_id;
       var self = this;
+      var walletUrl = url;
+      
       var fullScreen = ("fullScreen" in params && params["fullScreen"]);
       walletUrl += "?fullScreen=" + fullScreen;
+      
+      var forceBrokenPayment = ("forceBrokenPayment" in params && params["forceBrokenPayment"]);
+      walletUrl += "&forceBrokenPayment=" + forceBrokenPayment;
+
 
       var PaymentUrl = null;
       var PaymentUrlTimeout = 65 * 1000;
@@ -307,7 +312,7 @@ var BitcoinExpress = {
               }
 
               var Payment = message.payment;
-              console.log("Payment.wallet_id", Payment.wallet_id);
+              console.log("Payment.wallet_id", Payment.Payment.wallet_id);
 
               //Send the payment to the merchant
               $.ajax({
@@ -342,22 +347,6 @@ var BitcoinExpress = {
                   if (!("wallet_id" in PaymentAck && PaymentAck.wallet_id == Payment.Payment.wallet_id)) {
                     event.source.postMessage({
                       err: "PaymentAck.wallet_id undefined or incorrect"
-                    }, "*");
-                    //window.removeEventListener("message", manageWalletEvents, false);
-                    return;
-                  }
-
-                  if (!("wallet_id" in PaymentAck && PaymentAck.wallet_id == Payment.Payment.wallet_id)) {
-                    event.source.postMessage({
-                      err: "PaymentAck.wallet_id undefined or incorrect"
-                    }, "*");
-                    //window.removeEventListener("message", manageWalletEvents, false);
-                    return;
-                  }
-
-                  if (!("return_url" in PaymentAck)) {
-                    event.source.postMessage({
-                      err: "PaymentAck.return_url undefined"
                     }, "*");
                     //window.removeEventListener("message", manageWalletEvents, false);
                     return;
